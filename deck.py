@@ -10,9 +10,9 @@ class Card:
 
     def description(self): #return the information of a card (good for printing)
         if len(self.kind) > 1: #if it is a face card, tell them the value 
-            return f'{self.kind} of {self.suite} with a value of {self.value}'
+            return f'{self.kind} of {self.suite} with a value of {self.value}\n'
         else:
-            return f'{self.kind} of {self.suite}'
+            return f'{self.kind} of {self.suite}\n'
     
     
 class Deck:
@@ -34,4 +34,4 @@ class Deck:
         return self.output_card(card1) + self.output_card(card2)
     
     def output_card(self, card):
-        return f'\n{card.description()}'
+        return card.description()

@@ -3,7 +3,7 @@ from threading import Thread
 import os
 def receive():
     while True:
-        msg = client_socket.recv(BUFSIZ).decode("utf8")
+        msg = client_socket.recv(BUFSIZ).decode('utf8')
         if not msg:
             break
         if 'clrscrn' in msg:
@@ -14,9 +14,7 @@ def receive():
 def send():
     while True:
         msg = input()
-        client_socket.send(bytes(msg, "utf8"))
-        if msg == "/quit":
-            break
+        client_socket.send(bytes(msg, 'utf8'))
 
 if __name__ == '__main__':
     HOST = input('Enter host(default is 127.0.0.1): ') or '127.0.0.1'

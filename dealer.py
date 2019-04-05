@@ -12,25 +12,23 @@ class Dealer:
     #inital dealer cards (2)
     def inital_dcards(self):
         cards = self.get_two_cards()
+        #set the card to 1 or 11 depending on the kind and other card's value
+        cards[0].value = 1 if cards[0].kind == 'Ace' and cards[1].value != 10 else 11
+        cards[1].value = 1 if cards[0].kind == 'Ace' and cards[0].value != 10 else 11
+        
         self.hand_value = cards[0].value + cards[1].value
-        return f'The dealers cards are: \n{self.dealer_deck.output_cards(cards[0], cards[1])}'
+        return self.dealer_deck.output_cards(cards[0], cards[1])
     
     #inital player cards (2)
     def inital_pcards(self, player):
         cards = self.get_two_cards()
-        player.hand_value = cards[0].value + cards[1].value
         player.cards = cards
         self.players[player] = player
-        return self.dealer_deck.output_cards(cards[0], cards[1])
+        return cards
     
     def get_two_cards(self):
         card1 = self.deal_card()
         card2 = self.deal_card()
-        
-        #set the card to 1 or 11 depending on the kind and other card's value
-        card1.value = 1 if card1.kind == 'Ace' and card2.value != 10 else 11
-        card2.value = 1 if card2.kind == 'Ace' and card1.value != 10 else 11
-    
         return [card1, card2]
 
     def get_value(self, player):
@@ -41,7 +39,7 @@ class Dealer:
         update = ''
         if self.hand_value < 19: #still in the game
             n_card = self.deal_card()
-            n_card.value = 1 if n_card.kind == 'Ace' and hand_value > 10 else 11
+            n_card.value = 1 if n_card.kind == 'Ace' and self.hand_value > 10 else 11
             self.hand_value += n_card.value
             update = self.dealer_deck.output_card(n_card)
             self.is_playing = True
