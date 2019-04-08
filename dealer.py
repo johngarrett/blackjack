@@ -45,12 +45,12 @@ class Dealer:
             n_card.value = 1 if n_card.kind == 'Ace' and self.hand_value > 10 else 11
             self.hand_value += n_card.value
             
-            vowels = ['a', 'e', 'i', 'o', 'u']
-            a = 'an' if self.deck.output_card(n_card)[0] in vowels else 'a'
+            vowels = ['8', 'a', 'e', 'i', 'o', 'u']
+            a = 'an' if self.deck.output_card(n_card)[0].lower() in vowels else 'a'
             
-            update = f'The dealer dealt themself {a} {self.deck.output_card(n_card)}'
+            update = f'The dealer dealt themself {a}:\n {self.deck.output_card(n_card)}'
             self.is_playing = True
         else:
             update = 'The dealer doesn\'t ask for another card -- they\'re out.'
-        update += f'\nThe dealer\'s hand now adds up to {self.hand_value}'
+        update += f'\nThe dealer\'s hand adds up to {self.hand_value}'
         return update

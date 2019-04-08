@@ -68,11 +68,29 @@ class GameManager:
         end_game_msg = ''
         for player in self.players:
             end_game_msg += f'{player.name}\'s final score: {player.hand_value}\n'
-        end_game_msg += f'The dealer\'s final score was {self.dealer.hand_value}'
+        end_game_msg += f'The dealer\'s final score: {self.dealer.hand_value}'
         
         self.broadcast(end_game_msg)
         self.broadcast_banner('⚑')
+        
+        self.broadcast('Welcome to the post game chat. Type /quit when you want to leave\n')
+        for player in self.players: #create a listening thread for each player when the game is over
+            Thread(target=self.post_game_chat, args=(player,)).start()
 
+    def post_game_chat(self, player):
+        while True:
+            msg = player.socket.recv(1024).decode('utf8')
+            if msg != '/quit':
+                for other_player in self.players: #send the message to everyone else
+                    if other_player != player:
+                        self.send_message(other_player.socket, msg, player.name + ': ')
+            else:
+                player.socket.send(bytes('/quit', 'utf8'))
+                player.socket.close()
+                del self.players[player]
+                self.broadcast(f'{player.name} has left the chat.')
+                break
+    
     def end_game_for(self, player):
         player.is_playing = False
         self.send_message(player.socket, f'\nYou\'re out!\nYour final score was: {player.hand_value}')
