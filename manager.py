@@ -19,12 +19,12 @@ class GameManager:
     def begin_game(self):
         self.broadcast('clrscrn')
         self.broadcast('Lets begin.\n')
-        self.broadcast(f'The dealer\'s cards are:\n{self.dealer.inital_dcards()}')
+        self.broadcast(f'The dealer\'s first cards are:\n\n{self.dealer.inital_dcards()}')
         for player in self.players:
             inital_pcards = self.dealer.inital_pcards(player)
-            self.send_message(player.socket, '\nYour cards are:\n')
+            self.send_message(player.socket, '\nYour first cards are:\n')
             for card in inital_pcards:
-                self.send_message(player.socket, card.description())
+                self.send_message(player.socket, self.dealer.deck.output_card(card))
             self.ace_check(player)
             player.hand_value = inital_pcards[0].value + inital_pcards[1].value
         self.play()
@@ -33,29 +33,47 @@ class GameManager:
         for player in self.players:
             if not player.is_playing:
                 return
-            self.send_message(player.socket, f'Your hand adds up to {player.hand_value}\nWould you like a hit? (y/n)')
+            
+            for other_player in self.players:
+                if other_player != player:
+                    self.send_message(other_player.socket, f'It\'s {player.name}\'s turn.')
+
+            self.send_message(player.socket, f'Your hand adds up to {player.hand_value}\nWould you like a hit? (y/n):')
             response = self.get_response(player.socket)
+            
             while response == 'Y' or response == 'y' and player.is_playing:
+                for other_player in self.players:
+                    if other_player != player:
+                        self.send_message(other_player.socket, f'{player.name} asks for another card')
+
                 additional_card = self.dealer.deal_card()
-                self.send_message(player.socket, f'\nThe dealer gives you the following card:\n\t{additional_card.description()}\n')
-                self.ace_check(player)
+                self.send_message(player.socket, f'\nThe dealer gives you the following card:\n{self.dealer.deck.output_card(additional_card)}')
                 player.cards.append(additional_card)
+                self.ace_check(player)
                 player.hand_value += additional_card.value
-                self.send_message(player.socket, 'Would you like a hit? (y/n)')
+                self.dealer_move()
+                self.send_message(player.socket, '\nWould you like a hit? (y/n):')
                 response = self.get_response(player.socket)
             self.end_game_for(player)
-        while True:
-            next_move = self.dealer.next_dmove()
-            if 'done' in next_move:
-                break
-            self.broadcast(next_move)
         self.end_game()
 
+    def dealer_move(self):
+        if self.dealer_done:
+            return
+        next_move = self.dealer.next_dmove()
+        if 'out' in next_move:
+            self.dealer_done = True
+        self.broadcast(next_move)
+
     def end_game(self):
+        self.broadcast('clrscrn')
         self.broadcast_banner('⚑')
+        end_game_msg = ''
         for player in self.players:
-            self.broadcast(f'{player.name}\'s final score: {player.hand_value}')
-        self.broadcast(f'The dealer\'s final score was {self.dealer.hand_value}')
+            end_game_msg += f'{player.name}\'s final score: {player.hand_value}\n'
+        end_game_msg += f'The dealer\'s final score was {self.dealer.hand_value}'
+        
+        self.broadcast(end_game_msg)
         self.broadcast_banner('⚑')
 
     def end_game_for(self, player):
@@ -64,8 +82,8 @@ class GameManager:
     
     def ace_check(self, player):
         for index, card in enumerate(player.cards):
-            if card.kind == 'Ace':
-                self.send_message(player.socket, '\nYou were dealt an Ace\n\nYou must make a decision.\nWill the Ace\'s value be 1 or 11? (default = 11)')
+            if card.kind == 'Ace' and card.value == [1, 11]:
+                self.send_message(player.socket, '\nYou were dealt an Ace\n\nYou must make a decision.\nWill the Ace\'s value be 1 or 11? (default = 11):')
                 value = self.get_response(player.socket)
                 player.cards[index].value = 1 if value == '1' else 11
 
@@ -79,38 +97,39 @@ class GameManager:
             sock.send(message)
 
     def broadcast_banner(self, char):
-        message = ''
+        message = '\n'
         for _ in range(10):
             message += f'{char}  '
+        message += '\n'
         self.broadcast(message)
     
     def get_response(self, socket):
-        message = socket.recv(1024).decode("utf8")
+        message = socket.recv(1024).decode('utf8')
         return message
 
     
     def __init__(self):
-        os.system('clear') #clear the screen (Linux)
         self.clients = {}
         self.players = []
         self.HOST = '127.0.0.1'
         self.PORT = 33000
+        self.dealer_done = False
         self.ADDR = (self.HOST, self.PORT)
         self.SERVER = socket(AF_INET, SOCK_STREAM)
         self.SERVER.bind(self.ADDR)
         self.dealer = Dealer()
         _max = int(input('Max connections: ') or '5')
         self.SERVER.listen(_max)
+        os.system('clear') #clear the screen (Linux)
         print('Waiting for connections...')
         ACCEPT_THREAD = Thread(target = self.accept_new_connection)
         ACCEPT_THREAD.start()
         ACCEPT_THREAD.join()
         self.SERVER.close()
         self.attempt_start()
-
     def accept_new_connection(self):
         divider = '🂡  🂢  🂣  🂤  🂥  🂦  🂧  🂨  🂩  🂪  🂡  🂢  🂣  🂤'
-        welcome = f'{divider}\n\n\tWELCOME TO BLACKJACK\n\n{divider}\n\n\nPlease enter your name:'
+        welcome = f'{divider}\n\n\tWELCOME TO BLACKJACK\n\n{divider}\n\n\nType ready when you\'re set to play\n\nPlease enter your name:'
         while True:
             socket, client_address = self.SERVER.accept()
             print('%s:%s has connected.' % client_address)
@@ -124,8 +143,7 @@ def handle_client(self, player):
         self.clients[player.socket] = player.name #for tuple socket addresses
         self.players.append(player) #for the players
         index = len(self.players) - 1
-        self.broadcast(f'\n{player.name} has joined the game!\n')
-        self.send_message(player.socket, 'Type ready when ready.')
+        self.broadcast(f'{player.name} has joined the game -- type ready when you\'re set to play.')
         while self.get_response(player.socket) != 'ready':
             self.players[index].state = False
         self.players[index].state = True
