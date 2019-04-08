@@ -6,9 +6,6 @@ import os
 class GameManager:
     def attempt_start(self):
         while True:
-            if len(self.players) < 2:
-                self.broadcast('\nNot enough players yet.\nThe game cannot begin.\n')
-                break
             for player in self.players:
                 if player.state != True:
                     self.broadcast('Someone in the match is not ready')
@@ -127,6 +124,7 @@ class GameManager:
         ACCEPT_THREAD.join()
         self.SERVER.close()
         self.attempt_start()
+    
     def accept_new_connection(self):
         divider = '🂡  🂢  🂣  🂤  🂥  🂦  🂧  🂨  🂩  🂪  🂡  🂢  🂣  🂤'
         welcome = f'{divider}\n\n\tWELCOME TO BLACKJACK\n\n{divider}\n\n\nType ready when you\'re set to play\n\nPlease enter your name:'
